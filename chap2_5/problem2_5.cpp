@@ -9,8 +9,8 @@
 #define WINDOW_X (500)
 #define WINDOW_Y (500)
 #define WINDOW_NAME "test5"
-#define TEXTURE_HEIGHT (512)
-#define TEXTURE_WIDTH (512)
+#define TEXTURE_HEIGHT (650)
+#define TEXTURE_WIDTH (650)
 
 void init_GL(int argc, char *argv[]);
 void init();
@@ -31,6 +31,9 @@ double g_distance = 10.0;
 bool g_isLeftButtonOn = false;
 bool g_isRightButtonOn = false;
 GLuint g_TextureHandles[3] = {0,0,0};
+
+cv::VideoCapture cap;
+cv::Mat frame;
 
 int main(int argc, char *argv[]){
   /* OpenGLの初期化 */
@@ -157,6 +160,7 @@ void glut_display(){
 }
 
 void glut_idle(){
+  /*
   static int counter = 0;
 
   if(counter == 0){
@@ -169,7 +173,21 @@ void glut_idle(){
 
   counter++;
   if(counter > 300) counter = 0;
-
+  */
+  cap >> frame;
+  cv::cvtColor(frame, frame, CV_BGR2RGB);
+  glBindTexture(GL_TEXTURE_2D, g_TextureHandles[0]);
+  if ((TEXTURE_WIDTH - frame.cols) <= 0){
+    printf("error");
+    exit(0);
+  }
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 
+                  (TEXTURE_WIDTH - frame.cols) / 2,
+                  (TEXTURE_HEIGHT - frame.rows) / 2,
+                  frame.cols, frame.rows,
+                  GL_RGB, GL_UNSIGNED_BYTE, frame.data);
+  cv::imshow("video", frame);
+  cv::waitKey(33);
   glutPostRedisplay();
 }
 
@@ -182,7 +200,7 @@ void draw_pyramid(){
 
   glEnable(GL_TEXTURE_2D);
 
-  glBindTexture(GL_TEXTURE_2D, g_TextureHandles[0]);
+  //glBindTexture(GL_TEXTURE_2D, g_TextureHandles[0]);
   glBegin(GL_TRIANGLES);
   glTexCoord2d(0.5,0.0);
   glVertex3dv(pointO);
@@ -218,7 +236,7 @@ void draw_pyramid(){
   glColor3d(1.0, 1.0, 1.0);
 
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, g_TextureHandles[1]);
+  //glBindTexture(GL_TEXTURE_2D, g_TextureHandles[0]);
 
   glBegin(GL_POLYGON);
   glTexCoord2d(1.0, 0.0);
@@ -235,6 +253,7 @@ void draw_pyramid(){
 }
 
 void set_texture(){
+  /*
   char *inputFileNames[3] = {"baboon.jpg", "fruits.jpg", "lena.jpg"};
   for(int i = 0; i < 3; i++){
     cv::Mat input = cv::imread(inputFileNames[i], 1);
@@ -247,6 +266,21 @@ void set_texture(){
                     (TEXTURE_HEIGHT - input.rows) / 2,
                     input.cols, input.rows,
                     GL_RGB, GL_UNSIGNED_BYTE, input.data);
-
   }
+  */
+  cap.open(1);
+
+  if (!cap.isOpened()) {
+    printf("no input video.\n");
+  }
+  cap >> frame;
+  cv::cvtColor(frame, frame, CV_BGR2RGB);
+  glBindTexture(GL_TEXTURE_2D, g_TextureHandles[0]);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 
+                  (TEXTURE_WIDTH - frame.cols) / 2,
+                  (TEXTURE_HEIGHT - frame.rows) / 2,
+                  frame.cols, frame.rows,
+                  GL_RGB, GL_UNSIGNED_BYTE, frame.data);
+  cv::imshow("video", frame);
+  cv::waitKey(33);
 }
