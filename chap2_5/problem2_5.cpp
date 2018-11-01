@@ -57,7 +57,7 @@ void init_GL(int argc, char *argv[]){
 
 void init(){
   glClearColor(0.2, 0.2, 0.2, 0.2);
-  glGenTextures(GLsizei n, GLuint * textures);
+  glGenTextures(3, g_TextureHandles);
 
   for(int i = 0; i < 3; i++){
     glBindTexture(GL_TEXTURE_2D, g_TextureHandles[i]);
@@ -160,11 +160,11 @@ void glut_idle(){
   static int counter = 0;
 
   if(counter == 0){
-    /* hatena */
+    glBindTexture(GL_TEXTURE_2D, g_TextureHandles[0]);
   }else if(counter == 100){
-    /* hatena */
+    glBindTexture(GL_TEXTURE_2D, g_TextureHandles[1]);
   }else if(counter == 200){
-    /* hatena */
+    glBindTexture(GL_TEXTURE_2D, g_TextureHandles[2]);
   }
 
   counter++;
@@ -180,12 +180,19 @@ void draw_pyramid(){
   GLdouble pointC[] = {-1.5, -1.0, -1.5};
   GLdouble pointD[] = {1.5, -1.0, -1.5};
 
-  glColor3d(1.0, 0.0, 0.0);
+  glEnable(GL_TEXTURE_2D);
+
+  glBindTexture(GL_TEXTURE_2D, g_TextureHandles[0]);
   glBegin(GL_TRIANGLES);
+  glTexCoord2d(0.5,0.0);
   glVertex3dv(pointO);
+  glTexCoord2d(1.0,1.0);
   glVertex3dv(pointA);
+  glTexCoord2d(0.0,1.0);
   glVertex3dv(pointB);
   glEnd();
+
+  glDisable(GL_TEXTURE_2D);
 
   glColor3d(1.0, 1.0, 0.0);
   glBegin(GL_TRIANGLES);
@@ -211,6 +218,7 @@ void draw_pyramid(){
   glColor3d(1.0, 1.0, 1.0);
 
   glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, g_TextureHandles[1]);
 
   glBegin(GL_POLYGON);
   glTexCoord2d(1.0, 0.0);
@@ -227,12 +235,18 @@ void draw_pyramid(){
 }
 
 void set_texture(){
-  char *inputFileNames[3] = {"flower1.jpg", "flower2.jpg", "flower3.jpg"};
+  char *inputFileNames[3] = {"baboon.jpg", "fruits.jpg", "lena.jpg"};
   for(int i = 0; i < 3; i++){
     cv::Mat input = cv::imread(inputFileNames[i], 1);
     // RGB -> RGBの変換
     cv::cvtColor(input, input, CV_BGR2RGB);
 
-    glBindTexture(GL_TEXTURE_2D, g_Texture)
+    glBindTexture(GL_TEXTURE_2D, g_TextureHandles[i]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 
+                    (TEXTURE_WIDTH - input.cols) / 2,
+                    (TEXTURE_HEIGHT - input.rows) / 2,
+                    input.cols, input.rows,
+                    GL_RGB, GL_UNSIGNED_BYTE, input.data);
+
   }
 }
