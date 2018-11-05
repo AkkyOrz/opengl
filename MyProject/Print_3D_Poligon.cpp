@@ -42,6 +42,7 @@ GLdouble lightblue[] = {0.5, 1.0, 1.0}; // color
 GLdouble red[] = {1.0, 0.5, 0.5}; // color
 const int GRID_WIDTH = 20; //gridの縦と横
 const int GRID_HEIGHT = 20;
+const double GRID_OFFSET = 0.5;
 
 // 物体描画関連のプロトタイプ宣言
 void draw_pyramid();
@@ -193,8 +194,8 @@ void glut_display(){
 
 // 背景にグリッドを生成
 void draw_grid(){
-    GLdouble pointO[] = {0.0, 0.0, -1.0};
-    GLdouble pointA[] = {GRID_WIDTH, 0.0, -1.0};
+    GLdouble pointO[] = {0.0, 0.0, -GRID_OFFSET};
+    GLdouble pointA[] = {GRID_WIDTH, 0.0, -GRID_OFFSET};
     for (int i = 0; i <= GRID_HEIGHT; i++){
         // Lineの太さは0.5が最小...?
         glLineWidth(0.5);
@@ -206,8 +207,8 @@ void draw_grid(){
         pointO[1] += 1.0;
         pointA[1] += 1.0;
     }
-    GLdouble pointB[] = {0.0, 0.0, -1.0};
-    GLdouble pointC[] = {0.0, GRID_HEIGHT, -1.0};
+    GLdouble pointB[] = {0.0, 0.0, -GRID_OFFSET};
+    GLdouble pointC[] = {0.0, GRID_HEIGHT, -GRID_OFFSET};
     for (int i = 0; i <= GRID_WIDTH; i++){
         glLineWidth(0.5);
         glColor3f(1.0, 1.0, 1.0);
@@ -225,6 +226,7 @@ void glut_idle(){
 
   if(counter == 0){
     draw_lifegame();
+    draw_cube(Point(0.0, 0.0, 0.0), red);
   }
 
   counter++;
@@ -300,8 +302,8 @@ void draw_lifegame(){
     std::default_random_engine generator;
     std::bernoulli_distribution distribution(0.5);
     std::uniform_int_distribution<> dist1(-1.0, 1.0);
-    for (int y = 0; y <= GRID_HEIGHT; y++){
-        for (int x = 0; x <= GRID_WIDTH; x++){
+    for (int y = 0; y < GRID_HEIGHT; y++){
+        for (int x = 0; x < GRID_WIDTH; x++){
             if (distribution(generator)){
                 is_live[y][x] = true;
             } else {
