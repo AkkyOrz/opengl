@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
+#include <random>
 
 
 #define WINDOW_X (1000)
 #define WINDOW_Y (1000)
 #define WINDOW_NAME "test2"
 
+// GL関係のプロトタイプ宣言
 void init_GL(int argc, char *argv[]);
 void init();
 void set_callback_functions();
@@ -16,17 +18,37 @@ void glut_display();
 void glut_keyboard(unsigned char key, int x, int y);
 void glut_mouse(int button, int state, int x, int y);
 void glut_motion(int x, int y);
+void glut_idle();
 
 class Point {
-public:    
+public:
     double x;
     double y;
     double z;
+    Point()
+    {
+        x = y = z = 0.0;
+    }
+    Point(double x0, double y0, double z0)
+    {
+        x = x0;
+        y = y0;
+        z = z0;
+    }
 };
 
+// 定数
+GLdouble lightblue[] = {0.5, 1.0, 1.0}; // color
+GLdouble red[] = {1.0, 0.5, 0.5}; // color
+const int GRID_WIDTH = 20; //gridの縦と横
+const int GRID_HEIGHT = 20;
+
+// 物体描画関連のプロトタイプ宣言
 void draw_pyramid();
 void draw_cube(Point p, GLdouble cube_color[]);
 void draw_grid();
+void draw_lifegame();
+
 
 // グローバル変数
 double g_angle1 = 0.0;
@@ -34,12 +56,9 @@ double g_angle2 = 0.0;
 double g_distance = 50.0;
 bool g_isLeftButtonOn = false;
 bool g_isRightButtonOn = false;
+bool is_live[GRID_WIDTH][GRID_HEIGHT];
 
-// 定数
-GLdouble lightblue[] = {0.5, 1.0, 1.0}; // color
-GLdouble red[] = {1.0, 0.5, 0.5}; // color
-const int GRID_WIDTH = 20; //gridの縦と横
-const int GRID_HEIGHT = 20;
+
 
 int main(int argc, char *argv[]){
   /* OpenGLの初期化 */
@@ -74,6 +93,7 @@ void set_callback_functions(){
   glutMouseFunc(glut_mouse);
   glutMotionFunc(glut_motion);
   glutPassiveMotionFunc(glut_motion);
+  glutIdleFunc(glut_idle);
 }
 
 void glut_keyboard(unsigned char key, int x, int y){
@@ -161,8 +181,10 @@ void glut_display(){
   Point p = {0.0, 0.0, 0.0};
   Point q = {1.0, 0.0, 0.0};
   draw_grid();
-  draw_cube(p, lightblue);
-  draw_cube(q, red);
+  
+  draw_lifegame();
+  //draw_cube(p, lightblue);
+  //draw_cube(q, red);
   glDisable(GL_DEPTH_TEST);
 
   glutSwapBuffers();
@@ -196,6 +218,19 @@ void draw_grid(){
         pointB[0] += 1.0;
         pointC[0] += 1.0;
     }
+}
+
+void glut_idle(){
+  static int counter = 0;
+
+  if(counter == 0){
+    draw_lifegame();
+  }
+
+  counter++;
+  if(counter > 100) counter = 0;
+
+  glutPostRedisplay();
 }
 
 // Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
@@ -259,4 +294,22 @@ void draw_cube(Point p, GLdouble cube_color[]){
   glVertex3dv(pointD);
   glVertex3dv(pointE);
   glEnd();
+}
+
+void draw_lifegame(){
+    std::default_random_engine generator;
+    std::bernoulli_distribution distribution(0.5);
+    std::uniform_int_distribution<> dist1(-1.0, 1.0);
+    for (int y = 0; y <= GRID_HEIGHT; y++){
+        for (int x = 0; x <= GRID_WIDTH; x++){
+            if (distribution(generator)){
+                is_live[y][x] = true;
+            } else {
+                is_live[y][x] = false;
+            }
+            if (is_live[y][x]){
+                draw_cube(Point((double)x, (double)y, 0.0), lightblue);
+            }
+        }
+    }
 }
