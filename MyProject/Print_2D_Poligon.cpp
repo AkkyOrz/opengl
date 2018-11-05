@@ -17,15 +17,24 @@ void glut_keyboard(unsigned char key, int x, int y);
 void glut_mouse(int button, int state, int x, int y);
 void glut_motion(int x, int y);
 
+class Point {
+public:    
+    double x;
+    double y;
+    double z;
+};
+
 void draw_pyramid();
-void draw_cube();
+void draw_cube(Point p, GLdouble cube_color[]);
 
 // グローバル変数
 double g_angle1 = 0.0;
 double g_angle2 = 0.0;
-double g_distance = 10.0;
+double g_distance = 50.0;
 bool g_isLeftButtonOn = false;
 bool g_isRightButtonOn = false;
+GLdouble lightblue[] = {0.5, 1.0, 1.0};
+GLdouble red[] = {1.0, 0.5, 0.5};
 
 int main(int argc, char *argv[]){
   /* OpenGLの初期化 */
@@ -122,7 +131,7 @@ void glut_display(){
   // つぎにモデル・ビュー変換
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  /**
+  
   if (cos(g_angle2) > 0){
     gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
               g_distance * sin(g_angle2),
@@ -134,7 +143,7 @@ void glut_display(){
               g_distance * cos(g_angle2) * cos(g_angle1),
               0.0, 0.0, 0.0, 0.0, -1.0, 0.0);
   }
-  **/
+  
   gluLookAt(3, 3, 3, 0, 0, 0, 0, 1, 0);
 
   glRotatef(g_angle1*3, 1.0, 0.0, 0.0);
@@ -142,69 +151,31 @@ void glut_display(){
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_DEPTH_TEST);
-  draw_cube();
+  Point p = {0.0, 0.0, 0.0};
+  Point q = {1.0, 0.0, 0.0};
+  draw_cube(p, lightblue);
+  draw_cube(q, red);
   glDisable(GL_DEPTH_TEST);
 
   glutSwapBuffers();
 }
 
 
-void draw_pyramid(){
-  GLdouble pointO[] = {0.0, 1.0, 0.0};
-  GLdouble pointA[] = {1.5, -1.0, 1.5};
-  GLdouble pointB[] = {-1.5, -1.0, 1.5};
-  GLdouble pointC[] = {-1.5, -1.0, -1.5};
-  GLdouble pointD[] = {1.5, -1.0, -1.5};
+// Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
+void draw_cube(Point p, GLdouble cube_color[]){
+  GLdouble pointO[] = {p.x, p.y, p.z};
+  GLdouble pointA[] = {p.x, p.y+1.0, p.z};
+  GLdouble pointB[] = {p.x, p.y+1.0, p.z+1.0};
+  GLdouble pointC[] = {p.x, p.y, p.z+1.0};
+  GLdouble pointD[] = {p.x+1.0, p.y, p.z};
+  GLdouble pointE[] = {p.x+1.0, p.y+1.0, p.z};
+  GLdouble pointF[] = {p.x+1.0, p.y+1.0, p.z+1.0};
+  GLdouble pointG[] = {p.x+1.0, p.y, p.z+1.0};
+  
 
-  glColor3d(1.0, 0.0, 0.0);
-  glBegin(GL_TRIANGLES);
-  glVertex3dv(pointO);
-  glVertex3dv(pointA);
-  glVertex3dv(pointB);
-  glEnd();
+ 
 
-  glColor3d(1.0, 1.0, 0.0);
-  glBegin(GL_TRIANGLES);
-  glVertex3dv(pointO);
-  glVertex3dv(pointB);
-  glVertex3dv(pointC);
-  glEnd();
-
-  glColor3d(0.0, 1.0, 1.0);
-  glBegin(GL_TRIANGLES);
-  glVertex3dv(pointO);
-  glVertex3dv(pointC);
-  glVertex3dv(pointD);
-  glEnd();
-
-  glColor3d(1.0, 0.0, 1.0);
-  glBegin(GL_TRIANGLES);
-  glVertex3dv(pointO);
-  glVertex3dv(pointD);
-  glVertex3dv(pointA);
-  glEnd();
-
-  glColor3d(1.0, 1.0, 1.0);
-  glBegin(GL_POLYGON);
-  glVertex3dv(pointA);
-  glVertex3dv(pointB);
-  glVertex3dv(pointC);
-  glVertex3dv(pointD);
-  glEnd();
-}
-
-void draw_cube(){
-  GLdouble pointO[] = {0.0, 0.0, 0.0};
-  GLdouble pointA[] = {0.0, 1.0, 0.0};
-  GLdouble pointB[] = {0.0, 1.0, 1.0};
-  GLdouble pointC[] = {0.0, 0.0, 1.0};
-  GLdouble pointD[] = {1.0, 0.0, 0.0};
-  GLdouble pointE[] = {1.0, 1.0, 0.0};
-  GLdouble pointF[] = {1.0, 1.0, 1.0};
-  GLdouble pointG[] = {1.0, 0.0, 1.0};
-
-
-  glColor3d(1.0, 1.0, 1.0);
+  glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointA);
@@ -212,7 +183,7 @@ void draw_cube(){
   glVertex3dv(pointC);
   glEnd();
 
-  glColor3d(1.0, 1.0, 1.0);
+  glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointA);
@@ -220,7 +191,7 @@ void draw_cube(){
   glVertex3dv(pointD);
   glEnd();
 
-  glColor3d(1.0, 1.0, 1.0);
+  glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointC);
@@ -228,7 +199,7 @@ void draw_cube(){
   glVertex3dv(pointD);
   glEnd();
 
-  glColor3d(1.0, 1.0, 1.0);
+  glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointB);
@@ -236,7 +207,7 @@ void draw_cube(){
   glVertex3dv(pointA);
   glEnd();
 
-  glColor3d(1.0, 1.0, 1.0);
+  glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointB);
@@ -244,7 +215,7 @@ void draw_cube(){
   glVertex3dv(pointG);
   glEnd();
 
-  glColor3d(1.0, 1.0, 1.0);
+  glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointG);
