@@ -4,9 +4,11 @@
 #include <GL/glut.h>
 
 
-#define WINDOW_X (500)
-#define WINDOW_Y (500)
+#define WINDOW_X (1000)
+#define WINDOW_Y (1000)
 #define WINDOW_NAME "test2"
+#define GRID_WIDTH (20)
+#define GRID_HEIGHT (20)
 
 void init_GL(int argc, char *argv[]);
 void init();
@@ -26,6 +28,7 @@ public:
 
 void draw_pyramid();
 void draw_cube(Point p, GLdouble cube_color[]);
+void draw_grid();
 
 // グローバル変数
 double g_angle1 = 0.0;
@@ -136,12 +139,14 @@ void glut_display(){
     gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
               g_distance * sin(g_angle2),
               g_distance * cos(g_angle2) * cos(g_angle1),
-              0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+              GRID_WIDTH/2.0, GRID_HEIGHT/2.0, 0.0,
+              0.0, 1.0, 0.0);
   } else {
     gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
               g_distance * sin(g_angle2),
               g_distance * cos(g_angle2) * cos(g_angle1),
-              0.0, 0.0, 0.0, 0.0, -1.0, 0.0);
+              GRID_WIDTH/2.0, GRID_HEIGHT/2.0, 0.0
+              , 0.0, -1.0, 0.0);
   }
   
   gluLookAt(3, 3, 3, 0, 0, 0, 0, 1, 0);
@@ -153,6 +158,7 @@ void glut_display(){
   glEnable(GL_DEPTH_TEST);
   Point p = {0.0, 0.0, 0.0};
   Point q = {1.0, 0.0, 0.0};
+  draw_grid();
   draw_cube(p, lightblue);
   draw_cube(q, red);
   glDisable(GL_DEPTH_TEST);
@@ -160,20 +166,44 @@ void glut_display(){
   glutSwapBuffers();
 }
 
+void draw_grid(){
+    GLdouble pointO[] = {0.0, 0.0, -1.0};
+    GLdouble pointA[] = {GRID_WIDTH, 0.0, -1.0};
+    for (int i = 0; i <= GRID_HEIGHT; i++){
+        glLineWidth(0.5);
+        glColor3f(1.0, 1.0, 1.0);
+        glBegin(GL_LINES);
+        glVertex3dv(pointO);
+        glVertex3dv(pointA);
+        glEnd();
+        pointO[1] += 1.0;
+        pointA[1] += 1.0;
+    }
+    GLdouble pointB[] = {0.0, 0.0, -1.0};
+    GLdouble pointC[] = {0.0, GRID_HEIGHT, -1.0};
+    for (int i = 0; i <= GRID_WIDTH; i++){
+        glLineWidth(0.5);
+        glColor3f(1.0, 1.0, 1.0);
+        glBegin(GL_LINES);
+        glVertex3dv(pointB);
+        glVertex3dv(pointC);
+        glEnd();
+        pointB[0] += 1.0;
+        pointC[0] += 1.0;
+    }
+}
 
 // Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
 void draw_cube(Point p, GLdouble cube_color[]){
   GLdouble pointO[] = {p.x, p.y, p.z};
-  GLdouble pointA[] = {p.x, p.y+1.0, p.z};
-  GLdouble pointB[] = {p.x, p.y+1.0, p.z+1.0};
-  GLdouble pointC[] = {p.x, p.y, p.z+1.0};
-  GLdouble pointD[] = {p.x+1.0, p.y, p.z};
-  GLdouble pointE[] = {p.x+1.0, p.y+1.0, p.z};
-  GLdouble pointF[] = {p.x+1.0, p.y+1.0, p.z+1.0};
-  GLdouble pointG[] = {p.x+1.0, p.y, p.z+1.0};
+  GLdouble pointA[] = {p.x, p.y+0.999, p.z};
+  GLdouble pointB[] = {p.x, p.y+0.999, p.z+0.999};
+  GLdouble pointC[] = {p.x, p.y, p.z+0.999};
+  GLdouble pointD[] = {p.x+0.999, p.y, p.z};
+  GLdouble pointE[] = {p.x+0.999, p.y+0.999, p.z};
+  GLdouble pointF[] = {p.x+0.999, p.y+0.999, p.z+0.999};
+  GLdouble pointG[] = {p.x+0.999, p.y, p.z+0.999};
   
-
- 
 
   glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
