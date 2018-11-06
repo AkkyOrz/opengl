@@ -45,9 +45,12 @@ const int GRID_SIZE_X = 40; //gridの縦と横
 const int GRID_SIZE_Y = 40;
 const int BUFSIZE = 1000;
 const double GRID_OFFSET = 0.5;
-const bool IS_INPUT = true;
+const bool IS_INPUT = false;  //true なら　tmp.txtから持ってくる false はランダム
+const int TIME_SLICE = 300;
 
 // lifegame関連のプロトタイプ宣言
+int cycle_x(int x);
+int cycle_y(int y);
 void init_cells();
 int count_adjacent_cells(int x, int y);
 void update_cells();
@@ -104,7 +107,7 @@ void set_callback_functions(){
   glutMotionFunc(glut_motion);
   glutPassiveMotionFunc(glut_motion);
   //glutIdleFunc(glut_idle);
-  glutTimerFunc(500 , timer , 0);
+  glutTimerFunc(TIME_SLICE , timer , 0);
 }
 
 void glut_keyboard(unsigned char key, int x, int y){
@@ -249,7 +252,7 @@ void timer(int value) {
 	draw_lifegame();
   update_cells();
 	glutPostRedisplay();
-	glutTimerFunc(500 , timer , 0);
+	glutTimerFunc(TIME_SLICE , timer , 0);
 }
 
 // Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
@@ -372,11 +375,9 @@ int count_adjacent_cells(int x, int y){
   int n = 0;
   int dx, dy;
   for (dx = x - 1; dx <= x + 1; dx++) {
-    if (dx < 0 || dx >= GRID_SIZE_X) continue;
     for (dy = y - 1; dy <= y + 1; dy++) {
       if (dx == x && dy == y) continue;
-      if (dy < 0 || dy >= GRID_SIZE_Y) continue;
-      n += (int)cell[dx][dy];
+      n += (int)cell[cycle_x(dx)][cycle_y(dy)];
     }
   }
   return n;
@@ -404,5 +405,25 @@ void update_cells(){
     for (y = 0; y < GRID_SIZE_Y; y++) {
       cell[x][y] = cell_next[x][y];
     }
+  }
+}
+
+int cycle_y(int y){        //境界を消去
+  if (y >= GRID_SIZE_Y){
+    return y - GRID_SIZE_Y;
+  } else if (y < 0){
+    return y + GRID_SIZE_Y;
+  } else{
+    return y;
+  }
+}
+
+int cycle_x(int x){          //境界を消去
+  if (x >= GRID_SIZE_X){
+    return x - GRID_SIZE_X;
+  } else if (x < 0){
+    return x + GRID_SIZE_X;
+  } else {
+    return x;
   }
 }
