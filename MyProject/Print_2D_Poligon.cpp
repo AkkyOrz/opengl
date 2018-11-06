@@ -249,8 +249,8 @@ void glut_idle(){
 }
 
 void timer(int value) {
-	draw_lifegame();
   update_cells();
+  draw_lifegame();
 	glutPostRedisplay();
 	glutTimerFunc(TIME_SLICE , timer , 0);
 }
