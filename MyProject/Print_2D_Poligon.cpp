@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
-
+#include <random>
+#include <string.h>
 
 #define WINDOW_X (1000)
 #define WINDOW_Y (1000)
 #define WINDOW_NAME "test2"
 
+// GL関係のプロトタイプ宣言
 void init_GL(int argc, char *argv[]);
 void init();
 void set_callback_functions();
@@ -16,30 +18,56 @@ void glut_display();
 void glut_keyboard(unsigned char key, int x, int y);
 void glut_mouse(int button, int state, int x, int y);
 void glut_motion(int x, int y);
+void glut_idle();
+void timer(int value);
 
 class Point {
-public:    
+public:
     double x;
     double y;
     double z;
+    Point()
+    {
+        x = y = z = 0.0;
+    }
+    Point(double x0, double y0, double z0)
+    {
+        x = x0;
+        y = y0;
+        z = z0;
+    }
 };
-
-void draw_pyramid();
-void draw_cube(Point p, GLdouble cube_color[]);
-void draw_grid();
-
-// グローバル変数
-double g_angle1 = 0.0;
-double g_angle2 = 0.0;
-double g_distance = 50.0;
-bool g_isLeftButtonOn = false;
-bool g_isRightButtonOn = false;
 
 // 定数
 GLdouble lightblue[] = {0.5, 1.0, 1.0}; // color
 GLdouble red[] = {1.0, 0.5, 0.5}; // color
-const int GRID_WIDTH = 20; //gridの縦と横
-const int GRID_HEIGHT = 20;
+const int GRID_SIZE_X = 40; //gridの縦と横
+const int GRID_SIZE_Y = 40;
+const int BUFSIZE = 1000;
+const double GRID_OFFSET = 0.5;
+const bool IS_INPUT = true;
+
+// lifegame関連のプロトタイプ宣言
+void init_cells();
+int count_adjacent_cells(int x, int y);
+void update_cells();
+
+// 物体描画関連のプロトタイプ宣言
+void draw_pyramid();
+void draw_cube(Point p, GLdouble cube_color[]);
+void draw_grid();
+void draw_lifegame();
+
+
+// グローバル変数
+double g_angle1 = 0.0;
+double g_angle2 = 0.0;
+double g_distance = 3 * GRID_SIZE_X;
+bool g_isLeftButtonOn = false;
+bool g_isRightButtonOn = false;
+bool cell[GRID_SIZE_X][GRID_SIZE_Y];
+
+
 
 int main(int argc, char *argv[]){
   /* OpenGLの初期化 */
@@ -66,6 +94,7 @@ void init_GL(int argc, char *argv[]){
 
 void init(){
   glClearColor(0.0, 0.0, 0.0, 0.0);         // 背景の塗りつぶし色を指定
+  init_cells();
 }
 
 void set_callback_functions(){
@@ -74,6 +103,8 @@ void set_callback_functions(){
   glutMouseFunc(glut_mouse);
   glutMotionFunc(glut_motion);
   glutPassiveMotionFunc(glut_motion);
+  //glutIdleFunc(glut_idle);
+  glutTimerFunc(500 , timer , 0);
 }
 
 void glut_keyboard(unsigned char key, int x, int y){
@@ -131,7 +162,7 @@ void glut_display(){
   // まず投影変換
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(30.0, 1.0, 0.1, 100);
+  gluPerspective(30.0, 1.0, 0.1, 200);  // ここでカメラの写せる範囲を指定している
 
   // つぎにモデル・ビュー変換
   glMatrixMode(GL_MODELVIEW);
@@ -141,13 +172,13 @@ void glut_display(){
     gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
               g_distance * sin(g_angle2),
               g_distance * cos(g_angle2) * cos(g_angle1),
-              GRID_WIDTH/2.0, GRID_HEIGHT/2.0, 0.0,
+              GRID_SIZE_X/2.0, GRID_SIZE_Y/2.0, 0.0,
               0.0, 1.0, 0.0);
   } else {
     gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
               g_distance * sin(g_angle2),
               g_distance * cos(g_angle2) * cos(g_angle1),
-              GRID_WIDTH/2.0, GRID_HEIGHT/2.0, 0.0
+              GRID_SIZE_X/2.0, GRID_SIZE_Y/2.0, 0.0
               , 0.0, -1.0, 0.0);
   }
   
@@ -161,8 +192,10 @@ void glut_display(){
   Point p = {0.0, 0.0, 0.0};
   Point q = {1.0, 0.0, 0.0};
   draw_grid();
-  draw_cube(p, lightblue);
-  draw_cube(q, red);
+  
+  draw_lifegame();
+  //draw_cube(p, lightblue);
+  //draw_cube(q, red);
   glDisable(GL_DEPTH_TEST);
 
   glutSwapBuffers();
@@ -171,9 +204,9 @@ void glut_display(){
 
 // 背景にグリッドを生成
 void draw_grid(){
-    GLdouble pointO[] = {0.0, 0.0, -1.0};
-    GLdouble pointA[] = {GRID_WIDTH, 0.0, -1.0};
-    for (int i = 0; i <= GRID_HEIGHT; i++){
+    GLdouble pointO[] = {0.0, 0.0, -GRID_OFFSET};
+    GLdouble pointA[] = {GRID_SIZE_X, 0.0, -GRID_OFFSET};
+    for (int i = 0; i <= GRID_SIZE_Y; i++){
         // Lineの太さは0.5が最小...?
         glLineWidth(0.5);
         glColor3f(1.0, 1.0, 1.0);
@@ -184,9 +217,9 @@ void draw_grid(){
         pointO[1] += 1.0;
         pointA[1] += 1.0;
     }
-    GLdouble pointB[] = {0.0, 0.0, -1.0};
-    GLdouble pointC[] = {0.0, GRID_HEIGHT, -1.0};
-    for (int i = 0; i <= GRID_WIDTH; i++){
+    GLdouble pointB[] = {0.0, 0.0, -GRID_OFFSET};
+    GLdouble pointC[] = {0.0, GRID_SIZE_Y, -GRID_OFFSET};
+    for (int i = 0; i <= GRID_SIZE_X; i++){
         glLineWidth(0.5);
         glColor3f(1.0, 1.0, 1.0);
         glBegin(GL_LINES);
@@ -196,6 +229,27 @@ void draw_grid(){
         pointB[0] += 1.0;
         pointC[0] += 1.0;
     }
+}
+
+void glut_idle(){
+  static int counter = 0;
+
+  if(counter == 0){
+    draw_lifegame();
+    draw_cube(Point(0.0, 0.0, 0.0), red);
+  }
+
+  counter++;
+  if(counter > 100) counter = 0;
+
+  glutPostRedisplay();
+}
+
+void timer(int value) {
+	draw_lifegame();
+  update_cells();
+	glutPostRedisplay();
+	glutTimerFunc(500 , timer , 0);
 }
 
 // Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
@@ -259,4 +313,96 @@ void draw_cube(Point p, GLdouble cube_color[]){
   glVertex3dv(pointD);
   glVertex3dv(pointE);
   glEnd();
+}
+
+void draw_lifegame(){
+    for (int y = 0; y < GRID_SIZE_Y; y++){
+        for (int x = 0; x < GRID_SIZE_X; x++){
+            if (cell[x][y]){
+                draw_cube(Point((double)x, (double)y, 0.0), lightblue);
+            }
+        }
+    }
+}
+
+void init_cells(){
+  int x = 0, y;
+  char buf[BUFSIZE];
+  FILE *fp;
+  const char *filename = "tmp.txt";
+
+  if (IS_INPUT){
+    if ((fp = fopen(filename, "r")) == NULL) {
+      printf("error: can't open %s\n", filename);
+      return;
+    }
+
+    while (fgets(buf, BUFSIZE, fp) != NULL) {
+      size_t len = strlen(buf) - 1;
+      for (x = 0; x < len; x++){
+        if (buf[x] == ' '){
+          cell[x][y] = false;
+        } else {
+          cell[x][y] = true;
+        }
+      }
+      y++;
+    }
+    fclose(fp);
+  } else {
+    // 乱数に従って最初の分布を生成
+    std::default_random_engine generator;
+    std::bernoulli_distribution distribution(0.5);
+    std::uniform_int_distribution<> dist1(-1.0, 1.0);
+    for (int y = 0; y < GRID_SIZE_Y; y++){
+        for (int x = 0; x < GRID_SIZE_X; x++){
+            if (distribution(generator)){
+                cell[x][y] = true;
+            } else {
+                cell[x][y] = false;
+            }
+        }
+    }
+  }
+}
+
+
+
+int count_adjacent_cells(int x, int y){
+  int n = 0;
+  int dx, dy;
+  for (dx = x - 1; dx <= x + 1; dx++) {
+    if (dx < 0 || dx >= GRID_SIZE_X) continue;
+    for (dy = y - 1; dy <= y + 1; dy++) {
+      if (dx == x && dy == y) continue;
+      if (dy < 0 || dy >= GRID_SIZE_Y) continue;
+      n += (int)cell[dx][dy];
+    }
+  }
+  return n;
+}
+
+void update_cells(){
+  int x, y;
+  bool cell_next[GRID_SIZE_X][GRID_SIZE_Y];
+
+  for (x = 0; x < GRID_SIZE_X; x++) {
+    for (y = 0; y < GRID_SIZE_Y; y++) {
+      cell_next[x][y] = false;
+      const int n = count_adjacent_cells(x, y);
+      if (n == 2){
+        cell_next[x][y] = cell[x][y];
+      } else if (n == 3){
+        cell_next[x][y] = true;     
+      } else {                  // n == 1,4 death
+        cell_next[x][y] = false;
+      }
+    }
+  }
+
+  for (x = 0; x < GRID_SIZE_X; x++) {
+    for (y = 0; y < GRID_SIZE_Y; y++) {
+      cell[x][y] = cell_next[x][y];
+    }
+  }
 }
