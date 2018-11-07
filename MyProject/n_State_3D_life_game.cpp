@@ -31,8 +31,8 @@ const int BUFSIZE = 1000;
 const double GRID_OFFSET = 0.5;
 const bool IS_INPUT = false; //true なら　tmp.txtから持ってくる false はランダム
 const int TIME_SLICE = 33;
-const double INIT_CELL_PROPOTION = 0.2; //初期のcellの割合 0はすべて死滅(のはず)
-const double ALPHA = 0.9;
+const double INIT_CELL_PROPOTION = 0.15; //初期のcellの割合 0はすべて死滅(のはず)
+const double ALPHA = 1.0;
 
 class Point {
 public:
@@ -65,6 +65,7 @@ void draw_pyramid();
 void draw_cube(Point p, GLdouble cube_color[]);
 void draw_cube_trans(Point p, GLdouble cube_color[]); 
 void draw_grid();
+void draw_cubic_line();
 void draw_lifegame();
 
 
@@ -218,8 +219,9 @@ void glut_display(){
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   Point p = {0.0, 0.0, 0.0};
   Point q = {1.0, 0.0, 0.0};
-  draw_grid();
-  
+  //draw_grid();
+  draw_cubic_line();
+
   draw_lifegame();
   //draw_cube(p, lightblue);
   //draw_cube(q, red);
@@ -259,6 +261,64 @@ void draw_grid(){
         pointB[0] += 1.0;
         pointC[0] += 1.0;
     }
+}
+
+void draw_cubic_line(){
+    GLfloat vertics[8][3] =
+        {
+            {0.0f, 0.0f, 0.0f},                         // 0
+            {GRID_SIZE_X, 0.0f, 0.0f},                  // 1
+            {0.0f, GRID_SIZE_Y, 0.0f},                  // 2
+            {0.0f, 0.0f, GRID_SIZE_Z},                  // 3
+            {GRID_SIZE_X, GRID_SIZE_Y, 0.0f},           // 4
+            {0.0f, GRID_SIZE_Y, GRID_SIZE_Z},           // 5
+            {GRID_SIZE_X, 0.0f, GRID_SIZE_Z},           // 6
+            {GRID_SIZE_X, GRID_SIZE_Y, GRID_SIZE_Z},    // 7
+        };
+
+    glLineWidth(1.0);
+    glColor3f(1.0, 1.0, 1.0);
+    for (int i = 0; i < 4; i++){
+        glBegin(GL_LINES);
+        glVertex3fv(vertics[0]);
+        glVertex3fv(vertics[i]);
+        glEnd();
+    }
+    for (int i = 4; i < 7; i++){
+        glBegin(GL_LINES);
+        glVertex3fv(vertics[7]);
+        glVertex3fv(vertics[i]);
+        glEnd();
+    }
+    glBegin(GL_LINES);
+    glVertex3fv(vertics[1]);
+    glVertex3fv(vertics[4]);
+    glEnd();
+
+    glBegin(GL_LINES);
+    glVertex3fv(vertics[2]);
+    glVertex3fv(vertics[5]);
+    glEnd();
+
+    glBegin(GL_LINES);
+    glVertex3fv(vertics[3]);
+    glVertex3fv(vertics[6]);
+    glEnd();
+
+    glBegin(GL_LINES);
+    glVertex3fv(vertics[1]);
+    glVertex3fv(vertics[6]);
+    glEnd();
+
+    glBegin(GL_LINES);
+    glVertex3fv(vertics[2]);
+    glVertex3fv(vertics[4]);
+    glEnd();
+
+    glBegin(GL_LINES);
+    glVertex3fv(vertics[3]);
+    glVertex3fv(vertics[5]);
+    glEnd();
 }
 
 /*
