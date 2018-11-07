@@ -507,9 +507,9 @@ void update_cells(){
       for (z = 0; z < GRID_SIZE_Z; z++){
         cell_next[x][y][z] = false;
         const int n = count_adjacent_cells(x, y, z);
-        if (6 <= n && n <= 8){
+        if (n == 4){
           cell_next[x][y][z] = cell[x][y][z];
-        } else if (9 <= n && n <= 11){
+        } else if (n == 4){
           cell_next[x][y][z] = true;     
         } else {                  // n == 1,4 death
           cell_next[x][y][z] = false;

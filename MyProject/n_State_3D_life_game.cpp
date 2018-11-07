@@ -24,13 +24,13 @@ void timer(int value);
 // 定数
 GLdouble lightblue[] = {0.5, 1.0, 1.0}; // color
 GLdouble red[] = {1.0, 0.5, 0.5};       // color
-const int GRID_SIZE_X = 40;             //gridの縦と横
-const int GRID_SIZE_Y = 40;
-const int GRID_SIZE_Z = 40;
+const int GRID_SIZE_X = 100;             //gridの縦と横
+const int GRID_SIZE_Y = 100;
+const int GRID_SIZE_Z = 100;
 const int BUFSIZE = 1000;
 const double GRID_OFFSET = 0.5;
 const bool IS_INPUT = false; //true なら　tmp.txtから持ってくる false はランダム
-const int TIME_SLICE = 10;
+const int TIME_SLICE = 33;
 const double INIT_CELL_PROPOTION = 0.2; //初期のcellの割合 0はすべて死滅(のはず)
 const double ALPHA = 0.9;
 
@@ -507,9 +507,9 @@ void update_cells(){
       for (z = 0; z < GRID_SIZE_Z; z++){
         cell_next[x][y][z] = false;
         const int n = count_adjacent_cells(x, y, z);
-        if (n == 4){
+        if (6<=n && n<=8){
           cell_next[x][y][z] = cell[x][y][z];
-        } else if (n == 4){
+        } else if (9 <= n && n <= 11){
           cell_next[x][y][z] = true;     
         } else {                  // n == 1,4 death
           cell_next[x][y][z] = false;
