@@ -24,15 +24,22 @@ void timer(int value);
 // 定数
 GLdouble lightblue[] = {0.5, 1.0, 1.0}; // color
 GLdouble red[] = {1.0, 0.5, 0.5};       // color
-const int GRID_SIZE_X = 100;             //gridの縦と横
-const int GRID_SIZE_Y = 100;
-const int GRID_SIZE_Z = 100;
+const int GRID_SIZE_X = 20;             //gridの縦と横
+const int GRID_SIZE_Y = 20;
+const int GRID_SIZE_Z = 20;
 const int BUFSIZE = 1000;
 const double GRID_OFFSET = 0.5;
 const bool IS_INPUT = false; //true なら　tmp.txtから持ってくる false はランダム
-const int TIME_SLICE = 33;
-const double INIT_CELL_PROPOTION = 0.15; //初期のcellの割合 0はすべて死滅(のはず)
+const int TIME_SLICE = 1;
+const double INIT_CELL_PROPOTION = 0.00005; //初期のcellの割合 0はすべて死滅(のはず)
 const double ALPHA = 1.0;
+
+const int N_STATE = 2;
+const int birth[]   = {0, 1, 2, 3, 4, 5 ,6};
+const int survive[] = {1, 3};
+static int N_birth;
+static int N_sruvive;
+
 
 class Point {
 public:
@@ -77,8 +84,8 @@ bool g_isLeftButtonOn = false;
 bool g_isRightButtonOn = false;
 bool is_stop = false;
 bool cell[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
-double cell_size[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 bool cell_next[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
+//double cell_size[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 static int counter = 0;
 
 
@@ -109,6 +116,8 @@ void init_GL(int argc, char *argv[]){
 void init(){
   glClearColor(0.2, 0.2, 0.2, 0.2);         // 背景の塗りつぶし色を指定
   init_cells();
+  N_birth = sizeof(birth)/sizeof(*birth);
+  N_sruvive = sizeof(survive)/sizeof(*survive);
 }
 
 void set_callback_functions(){
@@ -415,6 +424,7 @@ void draw_cube(Point p, GLdouble cube_color[]){
 }
 
 // Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
+// ただし透過する
 void draw_cube_trans(Point p, GLdouble cube_color[]){
 // counter 
   // 1.0だと同一平面上に描画することになり、いろいろあれなので微小区間だけ縮めた
@@ -557,6 +567,28 @@ int count_adjacent_cells(int x, int y, int z){
 }
 
 
+bool check_birth(int x, int y, int z, int n){
+    bool birth_val = false;
+    for (int i = 0; i < N_birth; i++){
+      if (birth[i] == n){
+        birth_val = true;
+        break;
+      }
+    }
+    return birth_val;
+}
+
+bool check_survive(int x, int y, int z, int n){
+  bool sruvive_val = false;
+  for (int i = 0; i < N_sruvive; i++){
+    if (birth[i] == n){
+      sruvive_val = true;
+      break;
+    }
+  }
+  return sruvive_val;
+}
+
 // この関数によって次の状態の細胞の生死を決定するが、、、
 // 3Dのあれは想像できないので、今は適当な数字を考える。
 void update_cells(){
@@ -567,11 +599,11 @@ void update_cells(){
       for (z = 0; z < GRID_SIZE_Z; z++){
         cell_next[x][y][z] = false;
         const int n = count_adjacent_cells(x, y, z);
-        if (6<=n && n<=8){
+        if (check_survive(x,y,z,n) && cell[x][y][z] == true){           // sruvive
           cell_next[x][y][z] = cell[x][y][z];
-        } else if (9 <= n && n <= 11){
+        } else if (check_birth(x,y,z,n) && cell[x][y][z] == false){ // birth
           cell_next[x][y][z] = true;     
-        } else {                  // n == 1,4 death
+        } else {
           cell_next[x][y][z] = false;
         }
       }
