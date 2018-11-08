@@ -22,8 +22,10 @@ void glut_idle();
 void timer(int value);
 
 // 定数
-GLdouble lightblue[] = {0.5, 1.0, 1.0, 1.0}; // color
-GLdouble red[] = {1.0, 0.5, 0.5, 1.0};       // color
+GLfloat lightblue[] = {0.0,0.0, 1.0, 1.0}; // color
+GLfloat red[] = {1.0, 0.0, 0.0, 1.0};       // color
+GLfloat green[] = {0.0, 1.0, 1.0, 1.0};
+GLfloat yellow[] = {1.0, 1.0, 0.0, 1.0};
 const int GRID_SIZE_X = 50;             //gridの縦と横
 const int GRID_SIZE_Y = 50;
 const int GRID_SIZE_Z = 50;
@@ -31,13 +33,12 @@ const int BUFSIZE = 1000;
 const double GRID_OFFSET = 0.5;
 const bool IS_INPUT = false; //true なら　tmp.txtから持ってくる false はランダム
 const int TIME_SLICE = 1;
-const double INIT_CELL_PROPOTION = 0.05; //初期のcellの割合 0はすべて死滅(のはず)
-const double ALPHA = 1.0;
+const double INIT_CELL_PROPOTION = 0.02; //初期のcellの割合 0はすべて死滅(のはず)
+const double ALPHA = 0.8;
 
 const int N_STATE = 5;
 const int birth[]   = {4};
-const int survive[] = {4};
-
+const int survive[] = {4,8}; // {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};
 
 const int color_ver = 1;  // 0 は原点から最奥までのグラデーション, 
                           // 1は状態ごとの色分け
@@ -45,6 +46,7 @@ const int color_ver = 1;  // 0 は原点から最奥までのグラデーショ�
                           // 3は中心からのグラデーション
 static int N_birth;
 static int N_survive;
+static int generation = 0;
 
 
 class Point {
@@ -74,10 +76,16 @@ int count_adjacent_cells(int x, int y, int z);
 void update_cells();
 bool check_around(int dx, int dy, int dz, int state);
 
+// 色変換のプロトタイプ宣言
+void rgbTolab(GLfloat rgb_color[], GLfloat lab_color[]);
+void labtoRGB(GLfloat lab_color[], GLfloat rgb_color[]);
+void hsv2rgb(GLfloat hsv_color[], GLfloat rgb_color[]);
+void rgb2hsv(GLfloat rgb_color[], GLfloat hsv_color[]);
+
 // 物体描画関連のプロトタイプ宣言
 void draw_pyramid();
-void draw_cube(Point p, GLdouble cube_color[]);
-void draw_cube_trans(Point p, GLdouble cube_color[]); 
+void draw_cube(Point p, GLfloat cube_color[]);
+void draw_cube_trans(Point p, GLfloat cube_color[]); 
 void draw_grid();
 void draw_cubic_line();
 void draw_lifegame();
@@ -213,7 +221,7 @@ void glut_display(){
   // まず投影変換
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(30.0, 1.0, 0.1, g_distance * 10);  // ここでカメラの写せる範囲を指定している
+  gluPerspective(40.0, 1.0, 0.1, g_distance * 10);  // ここでカメラの写せる範囲を指定している
 
   // つぎにモデル・ビュー変換
   glMatrixMode(GL_MODELVIEW);
@@ -223,35 +231,67 @@ void glut_display(){
     gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
               g_distance * sin(g_angle2),
               g_distance * cos(g_angle2) * cos(g_angle1),
-              GRID_SIZE_X/2.0, GRID_SIZE_Y/2.0, GRID_SIZE_Z/2.0,
+              0.0, 0.0, 0.0,
               0.0, 1.0, 0.0);
   } else {
     gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
               g_distance * sin(g_angle2),
               g_distance * cos(g_angle2) * cos(g_angle1),
-              GRID_SIZE_X/2.0, GRID_SIZE_Y/2.0, GRID_SIZE_Z/2.0
+              0.0, 0.0, 0.0
               , 0.0, -1.0, 0.0);
   }
   
-  gluLookAt(3, 3, 3, 0, 0, 0, 0, 1, 0);
-
-  glRotatef(g_angle1*3, 1.0, 0.0, 0.0);
-  glRotatef(g_angle2*3, 0.0, 1.0, 0.0);
+/*
+  GLfloat lightpos[] = {(float)(g_distance * cos(g_angle2) * sin(g_angle1)),
+          (float)(g_distance * sin(g_angle2)),
+          (float)(g_distance * cos(g_angle2) * cos(g_angle1)),
+          1.0};
+*/
+  GLfloat lightpos[] = {g_distance * 0.5, g_distance * 0.5, g_distance * 0.5};
+  GLfloat diffuse[] = {1.0, 1.0, 1.0, 0.5};
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
+
+
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
+
+  glPushMatrix();
+  glTranslatef(g_distance * 0.5, g_distance * 0.5, g_distance * 0.5);
+  glutSolidSphere(5.0, 50, 50);
+  glPopMatrix();
+
+  glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  Point p = {0.0, 0.0, 0.0};
-  Point q = {1.0, 0.0, 0.0};
+
+
+
+  glPushMatrix();
+  glTranslatef(-GRID_SIZE_X / 2.0, - GRID_SIZE_Y / 2.0, - GRID_SIZE_Z / 2.0);
+  draw_lifegame();
+
+  glDisable(GL_LIGHT0);
+  glDisable(GL_LIGHTING);
+
   //draw_grid();
   draw_cubic_line();
+  
+  glPopMatrix();
 
-  draw_lifegame();
-  //draw_cube(p, lightblue);
-  //draw_cube(q, red);
+  //glPushMatrix();
+  //glutSolidSphere(10, 50, 50);
+  //glPopMatrix();
+
+  glFlush();
+
+
   glDisable(GL_BLEND);
   glDisable(GL_DEPTH_TEST);
+
 
   glutSwapBuffers();
 }
@@ -346,25 +386,10 @@ void draw_cubic_line(){
     glEnd();
 }
 
-/*
-void glut_idle(){
-  static int counter = 0;
-
-  if(counter == 0){
-    update_cells();
-    //draw_lifegame();
-  }
-  if (!is_stop) counter++;
-  if(counter > 100) counter = 0;
-
-  glutPostRedisplay();
-}
-*/
 
 void timer(int value) {
   if(counter % speed == 0){
     update_cells();
-    draw_lifegame();
   }
   if (!is_stop) counter++;
   if (counter > 1000) counter = 0;
@@ -375,7 +400,7 @@ void timer(int value) {
 
 
 // Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
-void draw_cube(Point p, GLdouble cube_color[]){
+void draw_cube(Point p, GLfloat cube_color[]){
 
   // 1.0だと同一平面上に描画することになり、いろいろあれなので微小区間だけ縮めた
   GLdouble pointO[] = {p.x, p.y, p.z};
@@ -387,6 +412,8 @@ void draw_cube(Point p, GLdouble cube_color[]){
   GLdouble pointF[] = {p.x+0.999, p.y+0.999, p.z+0.999};
   GLdouble pointG[] = {p.x+0.999, p.y, p.z+0.999};
   
+  //glPushMatrix();
+  //glTranslatef(-GRID_SIZE_X/ 2.0, GRID_SIZE_Y/2.0, GRID_SIZE_Z/2.0);
 
   glColor3d(cube_color[0], cube_color[1], cube_color[2]);
   glBegin(GL_POLYGON);
@@ -435,11 +462,13 @@ void draw_cube(Point p, GLdouble cube_color[]){
   glVertex3dv(pointD);
   glVertex3dv(pointE);
   glEnd();
+
+  //glPopMatrix();
 }
 
 // Point{x, y, z}を起点にPoint{x+1, y+1, z+1}の立方体を描画する。
 // ただし透過する
-void draw_cube_trans(Point p, GLdouble cube_color[]){
+void draw_cube_trans(Point p, GLfloat cube_color[]){
 // counter 
   // 1.0だと同一平面上に描画することになり、いろいろあれなので微小区間だけ縮めた
   GLdouble pointO[] = {p.x, p.y, p.z};
@@ -451,8 +480,9 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   GLdouble pointF[] = {p.x+0.999, p.y+0.999, p.z+0.999};
   GLdouble pointG[] = {p.x+0.999, p.y, p.z+0.999};
   
-
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, cube_color);
+  glNormal3d(-1.0, 0.0, 0.0);
+  //glColor4dv(cube_color);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointA);
@@ -460,7 +490,9 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointC);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, cube_color);
+  glNormal3d(0.0, 0.0, -1.0);
+  //glColor4dv(cube_color);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointA);
@@ -468,7 +500,9 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointD);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, cube_color);
+  glNormal3d(0.0, -1.0, 0.0);
+  //glColor4dv(cube_color);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointC);
@@ -476,7 +510,9 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointD);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, cube_color);
+  glNormal3d(0.0, 1.0, 0.0);
+  //glColor4dv(cube_color);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointB);
@@ -484,7 +520,9 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointA);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, cube_color);
+  glNormal3d(0.0, 0.0, 1.0);
+  //glColor4dv(cube_color);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointB);
@@ -492,7 +530,9 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointG);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, cube_color);
+  glNormal3d(1.0, 0.0, 0.0);
+  //glColor4dv(cube_color);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointG);
@@ -505,7 +545,7 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
 // おそらくswitch文で書き換えるべき
 
 void draw_lifegame(){
-  GLdouble point_color[4];
+  GLfloat point_color[4];
   if (color_ver == 0){ 
     // 原点から再奥までのグラデーション
     for (int y = 0; y < GRID_SIZE_Y; y++){
@@ -526,13 +566,37 @@ void draw_lifegame(){
     }
   } else if (color_ver == 1){
     // 状態に応じて色を変える
+    GLfloat hsv_color[4] = {0, 72, 100};
     for (int y = 0; y < GRID_SIZE_Y; y++){
       for (int x = 0; x < GRID_SIZE_X; x++){
         for (int z = 0; z < GRID_SIZE_Z; z++){
           if (cell[x][y][z]){
-            point_color[0] = 0.2 + ((double)(cell[x][y][z]*1.0) / (N_STATE - 1)) * 0.7;
-            point_color[1] = 0.2;
-            point_color[2] = 0.5;
+            //hsv_color[0] = 60.0 * (N_STATE- 1.0 - cell[x][y][z]) / (N_STATE-1);
+            //hsv2rgb(hsv_color, point_color);
+
+            if (cell[x][y][z] == N_STATE - 1){
+              point_color[0] = red[0];
+              point_color[1] = red[1];
+              point_color[2] = red[2];
+            }
+            else if (cell[x][y][z] == N_STATE - 2)
+            {
+              point_color[0] = lightblue[0];
+              point_color[1] = lightblue[1];
+              point_color[2] = lightblue[2];
+            }
+            else if (cell[x][y][z] == 2){
+              point_color[0] = green[0];
+              point_color[1] = green[1];
+              point_color[2] = green[2];
+            }
+            else if (cell[x][y][z] == 1)
+            {
+              point_color[0] = yellow[0];
+              point_color[1] = yellow[1];
+              point_color[2] = yellow[2];
+            }
+
             point_color[3] = 1.0;
             draw_cube_trans(Point((double)x, (double)y, double(z)), point_color);
             // ここに
@@ -607,15 +671,32 @@ void init_cells(){
     std::random_device seed_gen;
     std::default_random_engine engine(seed_gen());
     std::bernoulli_distribution distribution(INIT_CELL_PROPOTION);
-    for (int y = 0; y < GRID_SIZE_Y; y++){
-        for (int x = 0; x < GRID_SIZE_X; x++){
-          for(int z = 0; z < GRID_SIZE_Z; z++){
+    for (int y = 0; y < GRID_SIZE_Y ; y++)
+    {
+      for (int x = 0; x < GRID_SIZE_X ; x++)
+      {
+        for (int z = 0; z < GRID_SIZE_Z ; z++)
+        {
+            cell[x][y][z] = 0;
+  
+        }
+      }
+    }
+    for (int y = GRID_SIZE_Y / 4; y < GRID_SIZE_Y / 4 * 3; y++){
+      for (int x = GRID_SIZE_X / 4; x < GRID_SIZE_X / 4 * 3; x++){
+        for (int z = GRID_SIZE_Z / 4; z < GRID_SIZE_Z / 4 * 3; z++)
+        {
+          for (int i = 1; i < N_STATE; i++){
             if (distribution(engine)){
-                cell[x][y][z] = N_STATE-1;
-            } else {
-                cell[x][y][z] = 0;
+              cell[x][y][z] = N_STATE - i;
             }
           }
+          //if (distribution(engine))
+          //{
+          //  cell[x][y][z] = N_STATE - 1;
+          //}
+        
+        }
         }
     }
   }
@@ -635,8 +716,12 @@ int count_adjacent_cells(int x, int y, int z){
     for (dy = y - 1; dy <= y + 1; dy++) {
       for (dz = z - 1; dz <= z + 1; dz++){
         if (dx == x && dy == y && dz == z) continue;
-        if (check_around(cycle_x(dx), cycle_y(dy), cycle_z(dz), state) == true)
+        if (check_around(cycle_x(dx), cycle_y(dy), cycle_z(dz), state) == true){
           n++;
+          if(generation > 1){
+            printf("%d\n", n);
+          }
+        }
       }
     }
   }
@@ -654,7 +739,9 @@ bool check_around(int dx, int dy, int dz, int state){
     return cell[dx][dy][dz] >= N_STATE - 1;   
   } else {
     // 自分の状態より「良い」状態のセルかどうか
-    return cell[dx][dy][dz] >= state;
+    return cell[dx][dy][dz] > state; //  == true;
+    // ここは >= stateが一番動いてるけど...
+    // > state, やってほしいのは   == state+1
   }
 }
 
@@ -691,12 +778,15 @@ void update_cells(){
   for (x = 0; x < GRID_SIZE_X; x++) {
     for (y = 0; y < GRID_SIZE_Y; y++) {
       for (z = 0; z < GRID_SIZE_Z; z++){
-        cell_next[x][y][z] = 0;
         const int n = count_adjacent_cells(x, y, z);
         if (check_survive(x,y,z,n)){           // survive
           cell_next[x][y][z] = cell[x][y][z];
-          if (cell_next[x][y][z] > 0) 
+          if (cell_next[x][y][z] > 0){
             cell_next[x][y][z]--;
+            if (generation >= 0){
+              printf("%d, %d\n",cell[x][y][z],cell_next[x][y][z]);
+            }
+          }
         } else if (check_birth(x,y,z,n)){ // birth
           cell_next[x][y][z] = N_STATE - 1;     
         } else {
@@ -713,6 +803,7 @@ void update_cells(){
       }
     }
   }
+  generation++;
 }
 
 int cycle_y(int y){        //境界を消去
@@ -745,3 +836,138 @@ int cycle_z(int z){        //境界を消去
   }
 }
 
+// https://qiita.com/hachisukansw/items/09caabe6bec46a2a0858
+void rgbTolab(GLfloat rgb_color[], GLfloat lab_color[]){
+
+  float r = rgb_color[0];
+  float g = rgb_color[1];
+  float b = rgb_color[2];
+
+  float x = ((r * 0.49000) + (g * 0.31000) + (b * 0.20000)) / 0.17697;
+  float y = ((r * 0.17697) + (g * 0.81240) + (b * 0.01063)) / 0.17697;
+  float z = (                (g * 0.01000) + (b * 0.99000)) / 0.17697;
+
+  //https://en.wikipedia.org/wiki/Lab_color_space#CIELAB-CIEXYZ_conversions
+
+  double delta = 6.0 / 29.0;
+
+  x *= 100 / 95.047;
+  y *= 100 / 100;
+  z *= 100 / 108.883;
+
+  x = x > std::pow(delta, 3.0) ? std::pow(x, 1.0 / 3.0) : (x/3.0 / std::pow(delta, 2.0)) + (4 / 29);
+  y = y > std::pow(delta, 3.0) ? std::pow(y, 1.0 / 3.0) : (y/3.0 / std::pow(delta, 2.0)) + (4 / 29);
+  z = z > std::pow(delta, 3.0) ? std::pow(z, 1.0 / 3.0) : (z/3.0 / std::pow(delta, 2.0)) + (4 / 29);
+
+  lab_color[0] = (116 * y) - 16;
+  lab_color[1] = 500 * (x - y);
+  lab_color[2] = 200 * (y - z);
+
+  return ;
+}
+
+void labtoRGB(GLfloat lab_color[], GLfloat rgb_color[]){
+
+  float L = lab_color[0];
+  float a = lab_color[1];
+  float b = lab_color[2];
+  
+  float x = (L + 16) / 116 + a / 500;
+  float y = (L + 16) / 116;
+  float z = (L + 16) / 116 - b / 200;
+
+  double delta = 6.0 / 29.0;
+
+  x = x > delta ? std::pow(x, 3.0) : 3 * std::pow(delta, 2.0) * (x - 4.0 / 29.0);
+  y = y > delta ? std::pow(y, 3.0) : 3 * std::pow(delta, 2.0) * (y - 4.0 / 29.0);
+  z = z > delta ? std::pow(z, 3.0) : 3 * std::pow(delta, 2.0) * (z - 4.0 / 29.0);
+
+  x *= 95.047/100;
+  y *= 100/100;
+  z *= 108.883/100;
+
+  rgb_color[0] = ((x * 0.49000) + (y * 0.31000) + (z * 0.20000)) / 0.17697;
+  rgb_color[1] = ((y * 0.17697) + (y * 0.81240) + (z * 0.01063)) / 0.17697;
+  rgb_color[2] = ((z * 0.01000) + (y * 0.99000)) / 0.17697;
+}
+
+void rgb2hsv(GLfloat rgb_color[], GLfloat hsv_color[]){
+  float rgb_max, rgb_min;
+  float diff;
+  float base;
+  float div1;
+  float div2;
+
+  rgb_max = std::max(std::max(rgb_color[0], rgb_color[1]), rgb_color[2]);
+  rgb_min = std::min(std::min(rgb_color[0], rgb_color[1]), rgb_color[2]);
+  if (rgb_max == rgb_color[0])
+  {
+    diff = rgb_color[1] - rgb_color[2]; // G-B
+    base = (rgb_color[1] < rgb_color[2]) ? 360.0f : 0.0f;
+  }
+  if (rgb_max == rgb_color[1])
+  {
+    diff = rgb_color[2] - rgb_color[0]; // B-R
+    base = 120.0f;
+  }
+  if (rgb_max == rgb_color[2])
+  {
+    diff = rgb_color[0] - rgb_color[1]; // R-G
+    base = 240.0f;
+  }
+
+  div1 = (rgb_max == rgb_min) ? 1.0f : (rgb_max - rgb_min);
+  div2 = (rgb_max > 0.0f) ? rgb_max : 1.0f;
+  hsv_color[0] = 60.0f * diff / div1 + base;
+  hsv_color[1] = (rgb_max - rgb_min) / div2;
+  hsv_color[2] = rgb_max;
+}
+
+void hsv2rgb(GLfloat hsv_color[], GLfloat rgb_color[]){
+   int Hi;
+   float f;
+   float p;
+   float q;
+   float t;
+   Hi = fmod(floor(hsv_color[0] / 60.0f), 6.0f);
+   f = hsv_color[0] / 60.0f - Hi;
+   p = hsv_color[2] * (1.0f - hsv_color[1]);
+   q = hsv_color[2] * (1.0f - f * hsv_color[1]);
+   t = hsv_color[2] * (1.0f - (1.0f - f) * hsv_color[1]);
+   if (Hi == 0)
+   {
+     rgb_color[0] = hsv_color[2];
+     rgb_color[1] = t;
+     rgb_color[2] = p;
+   }
+   if (Hi == 1)
+   {
+     rgb_color[0] = q;
+     rgb_color[1] = hsv_color[2];
+     rgb_color[2] = p;
+   }
+   if (Hi == 2)
+   {
+     rgb_color[0] = p;
+     rgb_color[1] = hsv_color[2];
+     rgb_color[2] = t;
+   }
+   if (Hi == 3)
+   {
+     rgb_color[0] = p;
+     rgb_color[1] = q;
+     rgb_color[2] = hsv_color[2];
+   }
+   if (Hi == 4)
+   {
+     rgb_color[0] = t;
+     rgb_color[1] = p;
+     rgb_color[2] = hsv_color[2];
+   }
+   if (Hi == 5)
+   {
+     rgb_color[0] = hsv_color[2];
+     rgb_color[1] = p;
+     rgb_color[2] = q;
+   }
+ }
