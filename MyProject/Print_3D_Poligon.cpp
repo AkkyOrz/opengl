@@ -537,7 +537,7 @@ int cycle_y(int y){        //境界を消去
   }
 }
 
-int cycle_x(int x){          //境界を消去
+int cycle_x(int x){        //境界を消去
   if (x >= GRID_SIZE_X){
     return x - GRID_SIZE_X;
   } else if (x < 0){

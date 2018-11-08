@@ -22,23 +22,29 @@ void glut_idle();
 void timer(int value);
 
 // 定数
-GLdouble lightblue[] = {0.5, 1.0, 1.0}; // color
-GLdouble red[] = {1.0, 0.5, 0.5};       // color
-const int GRID_SIZE_X = 20;             //gridの縦と横
-const int GRID_SIZE_Y = 20;
-const int GRID_SIZE_Z = 20;
+GLdouble lightblue[] = {0.5, 1.0, 1.0, 1.0}; // color
+GLdouble red[] = {1.0, 0.5, 0.5, 1.0};       // color
+const int GRID_SIZE_X = 50;             //gridの縦と横
+const int GRID_SIZE_Y = 50;
+const int GRID_SIZE_Z = 50;
 const int BUFSIZE = 1000;
 const double GRID_OFFSET = 0.5;
 const bool IS_INPUT = false; //true なら　tmp.txtから持ってくる false はランダム
 const int TIME_SLICE = 1;
-const double INIT_CELL_PROPOTION = 0.00005; //初期のcellの割合 0はすべて死滅(のはず)
+const double INIT_CELL_PROPOTION = 0.05; //初期のcellの割合 0はすべて死滅(のはず)
 const double ALPHA = 1.0;
 
-const int N_STATE = 2;
-const int birth[]   = {0, 1, 2, 3, 4, 5 ,6};
-const int survive[] = {1, 3};
+const int N_STATE = 5;
+const int birth[]   = {4};
+const int survive[] = {4};
+
+
+const int color_ver = 1;  // 0 は原点から最奥までのグラデーション, 
+                          // 1は状態ごとの色分け
+                          // 2は単色, 
+                          // 3は中心からのグラデーション
 static int N_birth;
-static int N_sruvive;
+static int N_survive;
 
 
 class Point {
@@ -66,6 +72,7 @@ int cycle_z(int z);
 void init_cells();
 int count_adjacent_cells(int x, int y, int z);
 void update_cells();
+bool check_around(int dx, int dy, int dz, int state);
 
 // 物体描画関連のプロトタイプ宣言
 void draw_pyramid();
@@ -83,10 +90,11 @@ double g_distance = 5 * GRID_SIZE_X;
 bool g_isLeftButtonOn = false;
 bool g_isRightButtonOn = false;
 bool is_stop = false;
-bool cell[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
-bool cell_next[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
+int cell[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
+int cell_next[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 //double cell_size[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 static int counter = 0;
+static int speed = 10;
 
 
 
@@ -117,7 +125,7 @@ void init(){
   glClearColor(0.2, 0.2, 0.2, 0.2);         // 背景の塗りつぶし色を指定
   init_cells();
   N_birth = sizeof(birth)/sizeof(*birth);
-  N_sruvive = sizeof(survive)/sizeof(*survive);
+  N_survive = sizeof(survive)/sizeof(*survive);
 }
 
 void set_callback_functions(){
@@ -142,6 +150,14 @@ void glut_keyboard(unsigned char key, int x, int y){
 
   case 'r':
     init_cells();
+    break;
+
+  case 'f':
+    if (speed > 1) speed--;
+    break;
+  
+  case 'd':
+    speed++;
     break;
 
   case 'q':
@@ -346,15 +362,13 @@ void glut_idle(){
 */
 
 void timer(int value) {
-  if(counter == 0){
+  if(counter % speed == 0){
     update_cells();
     draw_lifegame();
   }
   if (!is_stop) counter++;
-  if (counter > 10) counter = 0;
+  if (counter > 1000) counter = 0;
   
-  //update_cells();
-  //draw_lifegame();
 	glutPostRedisplay();
 	glutTimerFunc(TIME_SLICE , timer , 0);
 }
@@ -438,7 +452,7 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   GLdouble pointG[] = {p.x+0.999, p.y, p.z+0.999};
   
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], ALPHA);
+  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointA);
@@ -446,7 +460,7 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointC);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], ALPHA);
+  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointA);
@@ -454,7 +468,7 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointD);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], ALPHA);
+  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointO);
   glVertex3dv(pointC);
@@ -462,7 +476,7 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointD);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], ALPHA);
+  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointB);
@@ -470,7 +484,7 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointA);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], ALPHA);
+  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointB);
@@ -478,7 +492,7 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glVertex3dv(pointG);
   glEnd();
 
-  glColor4d(cube_color[0], cube_color[1], cube_color[2], ALPHA);
+  glColor4d(cube_color[0], cube_color[1], cube_color[2], cube_color[3]);
   glBegin(GL_POLYGON);
   glVertex3dv(pointF);
   glVertex3dv(pointG);
@@ -487,23 +501,80 @@ void draw_cube_trans(Point p, GLdouble cube_color[]){
   glEnd();
 }
 
+
+// おそらくswitch文で書き換えるべき
+
 void draw_lifegame(){
-  GLdouble point_color[3];
+  GLdouble point_color[4];
+  if (color_ver == 0){ 
+    // 原点から再奥までのグラデーション
     for (int y = 0; y < GRID_SIZE_Y; y++){
-        for (int x = 0; x < GRID_SIZE_X; x++){
-          for (int z = 0; z < GRID_SIZE_Z; z++){
-            if (cell[x][y][z]){
-              point_color[0] = (double)(x) / GRID_SIZE_X;
-              point_color[1] = (double)(y) / GRID_SIZE_Y;
-              point_color[2] = (double)(z) / GRID_SIZE_Z;
-              draw_cube_trans(Point((double)x, (double)y, double(z)), point_color);
-              // ここに
-              // draw_cube_fade(Point((double)x, (double)y, double(z)), point_color, cell_size);
-              // みたいなのを付け足したい。
-            }
+      for (int x = 0; x < GRID_SIZE_X; x++){
+        for (int z = 0; z < GRID_SIZE_Z; z++){
+          if (cell[x][y][z]){
+            point_color[0] = (double)(x) / GRID_SIZE_X;
+            point_color[1] = (double)(y) / GRID_SIZE_Y;
+            point_color[2] = (double)(z) / GRID_SIZE_Z;
+            point_color[3] = 1.0;
+            draw_cube_trans(Point((double)x, (double)y, double(z)), point_color);
+            // ここに
+            // draw_cube_fade(Point((double)x, (double)y, double(z)), point_color, cell_size);
+            // みたいなのを付け足したい。
           }
         }
+      }
     }
+  } else if (color_ver == 1){
+    // 状態に応じて色を変える
+    for (int y = 0; y < GRID_SIZE_Y; y++){
+      for (int x = 0; x < GRID_SIZE_X; x++){
+        for (int z = 0; z < GRID_SIZE_Z; z++){
+          if (cell[x][y][z]){
+            point_color[0] = 0.2 + ((double)(cell[x][y][z]*1.0) / (N_STATE - 1)) * 0.7;
+            point_color[1] = 0.2;
+            point_color[2] = 0.5;
+            point_color[3] = 1.0;
+            draw_cube_trans(Point((double)x, (double)y, double(z)), point_color);
+            // ここに
+            // draw_cube_fade(Point((double)x, (double)y, double(z)), point_color, cell_size);
+            // みたいなのを付け足したい。
+          }
+        }
+      }
+    }
+  } else if (color_ver == 2){
+    // 単色
+    for (int y = 0; y < GRID_SIZE_Y; y++){
+      for (int x = 0; x < GRID_SIZE_X; x++){
+        for (int z = 0; z < GRID_SIZE_Z; z++){
+          if (cell[x][y][z]) {
+            draw_cube_trans(Point((double)x, (double)y, double(z)), red);
+            // ここに
+            // draw_cube_fade(Point((double)x, (double)y, double(z)), point_color, cell_size);
+            // みたいなのを付け足したい。
+          }
+        }
+      }
+    }
+  } else if (color_ver == 3){
+    // 中心からのグラデーション
+    for (int y = 0; y < GRID_SIZE_Y; y++){
+      for (int x = 0; x < GRID_SIZE_X; x++){
+        for (int z = 0; z < GRID_SIZE_Z; z++){
+          if (cell[x][y][z]){
+            point_color[0] = (double)std::abs(x - GRID_SIZE_X / 2) / GRID_SIZE_X;
+            point_color[1] = 0.2;
+            point_color[2] = 0.2;
+            point_color[3] = 1.0;
+            draw_cube_trans(Point((double)x, (double)y, double(z)), red);
+            // ここに
+            // draw_cube_fade(Point((double)x, (double)y, double(z)), point_color, cell_size);
+            // みたいなのを付け足したい。
+          }
+        }
+      }
+    }
+  }
 }
 
 void init_cells(){
@@ -523,9 +594,9 @@ void init_cells(){
       size_t len = strlen(buf) - 1;
       for (x = 0; x < len; x++){
         if (buf[x] == ' '){
-          cell[x][y][0] = false;
+          cell[x][y][0] = 0;
         } else {
-          cell[x][y][0] = true;
+          cell[x][y][0] = N_STATE-1;
         }
       }
       y++;
@@ -540,9 +611,9 @@ void init_cells(){
         for (int x = 0; x < GRID_SIZE_X; x++){
           for(int z = 0; z < GRID_SIZE_Z; z++){
             if (distribution(engine)){
-                cell[x][y][z] = true;
+                cell[x][y][z] = N_STATE-1;
             } else {
-                cell[x][y][z] = false;
+                cell[x][y][z] = 0;
             }
           }
         }
@@ -552,14 +623,20 @@ void init_cells(){
 
 
 // 周り 3^3 - 1 = 26 個を探索する
+//intをboolでやる方法がよくわからんけど
+
+// ここのcheck_around()は編集
+
 int count_adjacent_cells(int x, int y, int z){
   int n = 0;
   int dx, dy, dz;
+  int state = cell[x][y][z];
   for (dx = x - 1; dx <= x + 1; dx++) {
     for (dy = y - 1; dy <= y + 1; dy++) {
       for (dz = z - 1; dz <= z + 1; dz++){
         if (dx == x && dy == y && dz == z) continue;
-        n += (int)cell[cycle_x(dx)][cycle_y(dy)][cycle_z(dz)];
+        if (check_around(cycle_x(dx), cycle_y(dy), cycle_z(dz), state) == true)
+          n++;
       }
     }
   }
@@ -567,8 +644,23 @@ int count_adjacent_cells(int x, int y, int z){
 }
 
 
+// 自分の状態によって数える周りの状態が変わる
+// dx, dy, dz は周りのセル
+// state は自分の状態
+
+bool check_around(int dx, int dy, int dz, int state){
+  if (state == 0){
+    // 新しいセルを発生させられるかどうか
+    return cell[dx][dy][dz] >= N_STATE - 1;   
+  } else {
+    // 自分の状態より「良い」状態のセルかどうか
+    return cell[dx][dy][dz] >= state;
+  }
+}
+
 bool check_birth(int x, int y, int z, int n){
     bool birth_val = false;
+    if (cell[x][y][z] > 0) return false;
     for (int i = 0; i < N_birth; i++){
       if (birth[i] == n){
         birth_val = true;
@@ -579,14 +671,16 @@ bool check_birth(int x, int y, int z, int n){
 }
 
 bool check_survive(int x, int y, int z, int n){
-  bool sruvive_val = false;
-  for (int i = 0; i < N_sruvive; i++){
-    if (birth[i] == n){
-      sruvive_val = true;
+  bool survive_val = false;
+  // 自分がsurviveじゃないなら関係ない。
+  if (cell[x][y][z] == 0) return false;
+  for (int i = 0; i < N_survive; i++){
+    if (survive[i] == n){
+      survive_val = true;
       break;
     }
   }
-  return sruvive_val;
+  return survive_val;
 }
 
 // この関数によって次の状態の細胞の生死を決定するが、、、
@@ -597,14 +691,16 @@ void update_cells(){
   for (x = 0; x < GRID_SIZE_X; x++) {
     for (y = 0; y < GRID_SIZE_Y; y++) {
       for (z = 0; z < GRID_SIZE_Z; z++){
-        cell_next[x][y][z] = false;
+        cell_next[x][y][z] = 0;
         const int n = count_adjacent_cells(x, y, z);
-        if (check_survive(x,y,z,n) && cell[x][y][z] == true){           // sruvive
+        if (check_survive(x,y,z,n)){           // survive
           cell_next[x][y][z] = cell[x][y][z];
-        } else if (check_birth(x,y,z,n) && cell[x][y][z] == false){ // birth
-          cell_next[x][y][z] = true;     
+          if (cell_next[x][y][z] > 0) 
+            cell_next[x][y][z]--;
+        } else if (check_birth(x,y,z,n)){ // birth
+          cell_next[x][y][z] = N_STATE - 1;     
         } else {
-          cell_next[x][y][z] = false;
+          cell_next[x][y][z] = 0;
         }
       }
     }
@@ -648,3 +744,4 @@ int cycle_z(int z){        //境界を消去
     return z;
   }
 }
+
