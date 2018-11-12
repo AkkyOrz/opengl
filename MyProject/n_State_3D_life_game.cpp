@@ -6,6 +6,7 @@
 #include <string.h>
 #include <vector>
 #include <iostream>
+#include <thread>
 
 #define WINDOW_X (1000)
 #define WINDOW_Y (1000)
@@ -39,8 +40,8 @@ const double INIT_CELL_PROPOTION = 0.2; //初期のcellの割合 0はすべて�
 const double ALPHA = 0.8;
 
 const int N_STATE = 5;
-const int birth[] = {4}; //{5,6,7, 12,13, 15};
-const int survive[] = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};
+const int birth[] = {4};
+const int survive[] = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};//,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26};
 
 const int color_ver = 1;  // 0 は原点から最奥までのグラデーション, 
                           // 1は状態ごとの色分け
@@ -80,8 +81,8 @@ bool check_around(int dx, int dy, int dz, int state);
 
 bool check_near(int x, int y, int z);
 
-    // 色変換のプロトタイプ宣言
-    void rgbTolab(GLfloat rgb_color[], GLfloat lab_color[]);
+// 色変換のプロトタイプ宣言
+void rgbTolab(GLfloat rgb_color[], GLfloat lab_color[]);
 void labtoRGB(GLfloat lab_color[], GLfloat rgb_color[]);
 void hsv2rgb(GLfloat hsv_color[], GLfloat rgb_color[]);
 void rgb2hsv(GLfloat rgb_color[], GLfloat hsv_color[]);
@@ -104,6 +105,7 @@ double g_distance = 3 * GRID_SIZE_X;
 bool g_isLeftButtonOn = false;
 bool g_isRightButtonOn = false;
 bool is_stop = false;
+bool is_move = false;
 static bool is_editor_mode = false;
 static int INPUT_NUM = 4; //0 なら　tmp.txtから持ってくる
                          //1 はランダム
@@ -116,7 +118,7 @@ int cell_next[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 int cell_temp[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 //double cell_size[GRID_SIZE_X][GRID_SIZE_Y][GRID_SIZE_Z];
 static int counter = 0;
-static int speed = 10;
+static int speed = 15;
 static int edit_now[3] = {GRID_SIZE_X/2, GRID_SIZE_Y/2, GRID_SIZE_Z/2};
 
 
@@ -164,6 +166,20 @@ void set_callback_functions(){
 
 void glut_keyboard(unsigned char key, int x, int y){
   switch(key){
+  
+  case 'v':
+    if (is_move == true)
+    {
+      is_move = false;
+    } else {
+      is_move = true;
+      g_angle2 = M_1_PI * 1.41421356;
+    } 
+    if (is_move == true && is_stop == true){
+      is_move = false;
+    }
+    
+    break;
 
   // 一時停止
   // 開始
@@ -173,6 +189,7 @@ void glut_keyboard(unsigned char key, int x, int y){
       is_editor_mode = false;
     } else {
       is_stop = true;
+      is_move = false;
     }
     break;
 
@@ -335,19 +352,38 @@ void glut_display(){
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   
-  if (cos(g_angle2) > 0){
-    gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
-              g_distance * sin(g_angle2),
-              g_distance * cos(g_angle2) * cos(g_angle1),
-              0.0, 0.0, 0.0,
-              0.0, 1.0, 0.0);
+  if (is_move == false){
+    if (cos(g_angle2) > 0){
+      gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
+                g_distance * sin(g_angle2),
+                g_distance * cos(g_angle2) * cos(g_angle1),
+                0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0);
+    } else {
+      gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
+                g_distance * sin(g_angle2),
+                g_distance * cos(g_angle2) * cos(g_angle1),
+                0.0, 0.0, 0.0
+                , 0.0, -1.0, 0.0);
+    }
   } else {
-    gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
-              g_distance * sin(g_angle2),
-              g_distance * cos(g_angle2) * cos(g_angle1),
-              0.0, 0.0, 0.0
-              , 0.0, -1.0, 0.0);
+    if (cos(g_angle2) > 0)
+    {
+      gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
+                g_distance * sin(g_angle2),
+                g_distance * cos(g_angle2) * cos(g_angle1),
+                0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0);
+    }
+    else
+    {
+      gluLookAt(g_distance * cos(g_angle2) * sin(g_angle1),
+                g_distance * sin(g_angle2),
+                g_distance * cos(g_angle2) * cos(g_angle1),
+                0.0, 0.0, 0.0, 0.0, -1.0, 0.0);
+    }
   }
+
   
 /*
   GLfloat lightpos[] = {(float)(g_distance * cos(g_angle2) * sin(g_angle1)),
@@ -378,7 +414,7 @@ void glut_display(){
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
   glEnable(GL_LIGHT1);
-  //glCullFace(GL_BACK);
+  //glCullFace(GL_FRONT);
 
   /*
   glPushMatrix();
@@ -445,6 +481,16 @@ void glut_display(){
     strs.push_back("Mode : Stop");
     strs.push_back(" \"s\" key : start");
     strs.push_back(" \"r\" key : reset" );
+    draw_string(strs, WINDOW_X, WINDOW_Y, 10, 10);
+  } else if (is_move){
+    std::vector<std::string> strs;
+    strs.push_back("generation: " + std::to_string(generation));
+    strs.push_back("Mode : Move");
+    strs.push_back(" \"s\" key : stop");
+    strs.push_back(" \"r\" key : reset");
+    strs.push_back(" \"e\" key : edit");
+    strs.push_back(" \"f\", \"d\" key : fast/slow");
+    strs.push_back(" \"q\" key : quit");
     draw_string(strs, WINDOW_X, WINDOW_Y, 10, 10);
   } else {
     std::vector<std::string> strs;
@@ -573,10 +619,20 @@ void draw_cubic_line(int mode){
 
 void timer(int value) {
   if(counter % speed == 0){
+    if(is_move){
+      g_angle1 += M_1_PI * 0.015;
+    }
     update_cells();
+    if (is_move)
+    {
+      g_angle1 += M_1_PI * 0.015;
+    }
   }
   if (!is_stop) counter++;
   if (counter > 1000) counter = 0;
+  if (is_move){
+    g_angle1 += M_1_PI * 0.015;
+  }
   
 	glutPostRedisplay();
 	glutTimerFunc(TIME_SLICE , timer , 0);
@@ -820,23 +876,26 @@ void draw_lifegame(){
     }
   } else if (color_ver == 1){
     // 状態に応じて色を変える
-    GLfloat hsv_color[4] = {0.0, 72.0, 100.0};
+    GLfloat hsv_color[4] = {0.0, 1.0, 1.0};
     GLfloat rgb_colors[N_STATE-1][4];
     for (int i = 0; i < N_STATE-1; i++){
-      hsv_color[0] = 60.0 * i / (N_STATE-1);
+      hsv_color[0] = 10.0 * (float)(N_STATE-2-i);
+      //std::cout << hsv_color[0] << std::endl;
       hsv2rgb(hsv_color, rgb_colors[i]);
+      //std::cout << rgb_colors[i][0] << rgb_colors[i][1] << rgb_colors[i][2] << std::endl;
     }
     for (int y = 0; y < GRID_SIZE_Y; y++){
       for (int x = 0; x < GRID_SIZE_X; x++){
         for (int z = 0; z < GRID_SIZE_Z; z++){
           if (cell[x][y][z]){
             for (int i = 0; i < N_STATE-1; i++){
-              if (cell[x][y][z] == i){
+              if (cell[x][y][z] == i+1){
                 point_color[0] = rgb_colors[i][0];
                 point_color[1] = rgb_colors[i][1];
                 point_color[2] = rgb_colors[i][2];
               }
             }
+/*
 
             if (cell[x][y][z] == N_STATE - 1){
               point_color[0] = red[0];
@@ -860,6 +919,7 @@ void draw_lifegame(){
               point_color[1] = yellow[1];
               point_color[2] = yellow[2];
             }
+            */
 
             if (is_editor_mode == false){
               point_color[3] = 1.0;
